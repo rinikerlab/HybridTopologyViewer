@@ -134,9 +134,10 @@ show core r1 r2
 where 'core' is the name of the core-object and 'r1' and 'r2' are the names of rgroup 1 and 2 respectively.
 
 These commands can also be shown by typing 'help' into the terminal.
+
 ----------
 
-WORKING OF PROGRAM
+## WORKING OF PROGRAM
 
 After reading everything in from the command line the program starts to read in the .pdb-file and in a first round groups together everything according to the labels in the file. This way, all solvents and proteins are already being separated and only the core-structure and the r-groups of the hybrid toplogy remain.
 Also most of the r-groups will be separated in this step as well. In the last step the program tries to determine which part of the groups belongs to the core-structure. For this it first searches for an atom that is bound to multiple r-groups. Then it will split the selection at this point and regroups everything on both sides into separate groups.
