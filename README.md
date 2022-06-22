@@ -143,3 +143,9 @@ After reading everything in from the command line the program starts to read in 
 Also most of the r-groups will be separated in this step as well. In the last step the program tries to determine which part of the groups belongs to the core-structure. For this it first searches for an atom that is bound to multiple r-groups. Then it will split the selection at this point and regroups everything on both sides into separate groups.
 
 After all the splitting and regrouping is done, the program starts to color in everything in PyMOL according to the default values and stays in response mode for further commands.
+
+----------
+
+## Examples
+
+In the 'examples'-folder three different molecule systems with hybrid topology (PAK, NIK and CHK1) are stored in order to get an idea as to what the '.pdb'-file should look like and how the visualization in PyMOL will be.
