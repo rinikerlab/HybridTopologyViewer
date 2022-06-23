@@ -671,7 +671,7 @@ def assign_to_groups_from_ptp(atom_dict, atom_types, dummy_iac):
         else:
             for j, lig_key in zip(atom, lig_keys):
                 if j != dummy_iac:
-                    atom_dict[lig_key].append(i)
+                    atom_dict[lig_key].append(i+1)
     return atom_dict
 
 def max_value_nested_list(check_list: list) -> int:
