@@ -37,14 +37,15 @@ AA_UNNAT_LIST = ['CYSH', 'HIE', 'HISB']
 
 # Default input_dict
 INPUT_DICT_DEFAULT = {"file": None,
-                    "representation_molecule": 'sticks', 
-                    "representation_solvent": '', 
-                    "representation_protein": 'cartoon', 
-                    "representation_singleatom": 'nb_sphere', 
-                    "peptide_atom_number": [], 
-                    "combine_aa_to_protein": True,
-                    "core_bound_to_rgroup":  True,
-                    "verbose": True}
+                      "ptp_file": None,
+                      "representation_molecule": 'sticks', 
+                      "representation_solvent": '', 
+                      "representation_protein": 'cartoon', 
+                      "representation_singleatom": 'nb_sphere', 
+                      "peptide_atom_number": [], 
+                      "combine_aa_to_protein": True,
+                      "core_bound_to_rgroup":  True,
+                      "verbose": True}
 
 
 # Colors for PyMOL
@@ -200,7 +201,7 @@ def check_input(check_dict: dict) -> None:
     
     # Check, if all entries have correct types. 
     bool_types = ['combine_aa_to_protein', 'core_bound_to_rgroup', 'rgroup_lowest_number', 'verbose']
-    str_types = ['file', 'representation_molecule', 'representation_solvent', 'representation_protein', 'representation_singleatom']
+    str_types = ['file', 'ptp_file', 'representation_molecule', 'representation_solvent', 'representation_protein', 'representation_singleatom']
     list_types = ['peptide_atom_number', 'coreatom_in_lower_atomindex']
 
     for entries in check_dict.keys():
@@ -1982,14 +1983,15 @@ def read_user_inputs(arg_list: list) -> dict:
     # Create input_dictionarry with all possible options. The keys are the same as the function inputs
     # in order to pass the dictionarry as a kwarg
     variable_dict = {"file": "\t\t\t\t'str': Enter a filename or absolute path of the pdb-file. If no absolute path is given, the current directory is chosen.", 
-                    "representation_molecule": "\t'str': Specify the preferred representation of the molecule. Default is 'sticks'.", 
-                    "representation_solvent": "\t'str': Specify the preferred representation of the solvent. Default is '' (solvent hidden).", 
-                    "representation_protein": "\t'str': Specify the preferred representation of the protein. Default is 'cartoon'.", 
-                    "representation_singleatom": "\t'str': Specify the preferred representation of single atoms. Default is 'nb_sphere'.", 
-                    "peptide_atom_number": "\t\t'list': Used if molecules in the pdb-file are peptides and should not be combined into a protein. The first atom of every peptide can be given in a list. Default is 'None' .", 
-                    "combine_aa_to_protein": "\t\t'bool': Used, if aminoacids are present that should belong to a protein and be combined. Default is 'True'.",
-                    "core_bound_to_rgroup": "\t\t'bool': Used, if multiple rgroups share a common core structure. The core is then labelled separately. If multiple corestructures are present, the program tries to assign all cores correctly. Default is 'True'.",
-                    "verbose": "\t\t\t'bool': Used, if feedback of the program is wished as to what it is doing at the moment. Default is 'True'."}
+                     "ptp_file":"\t'str': Enter the filename of the perturbed topology file",
+                     "representation_molecule": "\t'str': Specify the preferred representation of the molecule. Default is 'sticks'.", 
+                     "representation_solvent": "\t'str': Specify the preferred representation of the solvent. Default is '' (solvent hidden).", 
+                     "representation_protein": "\t'str': Specify the preferred representation of the protein. Default is 'cartoon'.", 
+                     "representation_singleatom": "\t'str': Specify the preferred representation of single atoms. Default is 'nb_sphere'.", 
+                     "peptide_atom_number": "\t\t'list': Used if molecules in the pdb-file are peptides and should not be combined into a protein. The first atom of every peptide can be given in a list. Default is 'None' .", 
+                     "combine_aa_to_protein": "\t\t'bool': Used, if aminoacids are present that should belong to a protein and be combined. Default is 'True'.",
+                     "core_bound_to_rgroup": "\t\t'bool': Used, if multiple rgroups share a common core structure. The core is then labelled separately. If multiple corestructures are present, the program tries to assign all cores correctly. Default is 'True'.",
+                     "verbose": "\t\t\t'bool': Used, if feedback of the program is wished as to what it is doing at the moment. Default is 'True'."}
     key_list = list(variable_dict.keys())
 
     
