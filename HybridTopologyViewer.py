@@ -12,7 +12,7 @@ import traceback
 import csv
 import re
 from pymol import cmd
-import numpy
+import numpy as np
 
 
 '''
@@ -201,7 +201,7 @@ def check_input(check_dict: dict) -> None:
     
     # Check, if all entries have correct types. 
     bool_types = ['combine_aa_to_protein', 'core_bound_to_rgroup', 'rgroup_lowest_number', 'verbose']
-    str_types = ['file', 'ptp_file', 'representation_molecule', 'representation_solvent', 'representation_protein', 'representation_singleatom']
+    str_types = ['file', 'representation_molecule', 'representation_solvent', 'representation_protein', 'representation_singleatom']
     list_types = ['peptide_atom_number', 'coreatom_in_lower_atomindex']
 
     for entries in check_dict.keys():
@@ -411,9 +411,9 @@ def distribute_colors(min_color: list, max_color: list,
     '''  
 
     # Get distributed colors
-    red = numpy.linspace(min_color[0], max_color[0], length)
-    green = numpy.linspace(min_color[1], max_color[1], length)
-    blue = numpy.linspace(min_color[2], max_color[2], length)
+    red = np.linspace(min_color[0], max_color[0], length)
+    green = np.linspace(min_color[1], max_color[1], length)
+    blue = np.linspace(min_color[2], max_color[2], length)
 
     # combine lists
     color_list = []
@@ -591,7 +591,88 @@ def get_rgroup_connections(atom_dict: dict, connection_table: list,
     # Return core atoms
     return rgroup_connected_atoms
 
+def read_ptp(filename):
+    '''
+    Usage
+    ----------
+    Reads information in the perturbed topology file to figure out the atom
+    type codes of all atoms (in each of their perturbed states)
 
+    Parameters
+    ----------
+    filename: str
+        path to the ptp file
+
+    returns
+    -------
+    atom_type: 
+        numpy array of the atom type codes (for all atoms in all perturbed states)    
+    dummy_iac:
+        atom type code of the dummy atoms
+    '''
+    read = False
+
+    data = []
+    for line in open(filename, 'r'):
+        if 'ATOM' in line: read = True
+        if 'END' in line: read = False
+        if '#' in line or not read: continue
+
+        data.append(line.split())
+
+    num_atoms = int(data[1][0])
+    num_states = int(data[1][1])
+
+    # Then go through the data line by line to find the atom types assigned to each state 
+    atom_types = []
+
+    for atom in data:
+        if len(atom) < num_states *2 + 4:
+            continue # don't read lines that are not atoms (potential comments, header, etc.)
+        atom_types.append(atom[2:-2:2])
+
+    # convert the data to numpy array
+    atom_types = np.array(atom_types, dtype=int)
+    # Take the dummy atom type code as the maximum number (gromos convention)
+    dummy_iac = np.max(atom_types)
+    
+    return atom_types, dummy_iac
+
+def assign_to_groups_from_ptp(atom_dict, atom_types, dummy_iac):
+    '''
+    Usage
+    ----------
+    Sets all values in the atom_dict properly based on the atom type information
+    read from the ptp file    
+
+    Parameters
+    ----------
+    atom_dict: dict
+        dictionarry containing all molecule names as keys and corresponding atoms as lists
+
+    returns
+    -------
+    atom_dict: dict
+        updated atom_dict
+    '''
+     
+    # Number of ligands = number of perturbed states
+    num_ligs = len(atom_types[0])
+    lig_keys = []
+    # Clear all current ligand selections
+    for i in range(1, num_ligs+1):
+        atom_dict[f'l{i}'] = []
+        lig_keys.append(f'l{i}')
+    atom_dict['core'] = []
+    
+    for i, atom in enumerate(atom_types):
+        if np.alltrue(atom != dummy_iac):
+            atom_dict['core'].append(i+1)
+        else:
+            for j, lig_key in zip(atom, lig_keys):
+                if j != dummy_iac:
+                    atom_dict[lig_key].append(i)
+    return atom_dict
 
 def max_value_nested_list(check_list: list) -> int:
 
@@ -2461,7 +2542,6 @@ def main():
     try:
         atom_dict, connection_table = read_pdb_file(**input_dict)
         
-        
     except Exception:
         print("#####################################################################################")
         print("\t\tERROR when reading in input file.")
@@ -2469,34 +2549,32 @@ def main():
         traceback.print_exception(*sys.exc_info())
         sys.exit(1)
 
+    if input_dict['ptp_file'] is not None:
+        atom_types, dummy_iac = read_ptp(input_dict['ptp_file'])
+        atom_dict = assign_to_groups_from_ptp(atom_dict, atom_types, dummy_iac)
 
-    # Find r-group connecting atoms and separate  into r-group and cores
-    try:
-        
-        rgroup_connecting_atoms_list = []
+    else:
+        try:# Find r-group connecting atoms and separate  into r-group and cores
+            rgroup_connecting_atoms_list = []
 
-        # 'Check for corestructure' is on per default
-        if input_dict['core_bound_to_rgroup'] == True :
-            rgroup_connecting_atoms_list = get_rgroup_connections(atom_dict, connection_table, **input_dict)    
-            
-            # Continue with separation if r-group connecting atoms were found, else skip
-            if len(rgroup_connecting_atoms_list):
-                separate_rgroups_and_cores(atom_dict, connection_table, rgroup_connecting_atoms_list, **input_dict)
-            
-
-    except Exception:
-        print("#####################################################################################")
-        print("\t\tERROR searching for core structures and separating them.")
-        print("#####################################################################################")
-        traceback.print_exception(*sys.exc_info())
-        sys.exit(-1)
-
-
+            # 'Check for corestructure' is on per default
+            if input_dict['core_bound_to_rgroup'] == True :
+                rgroup_connecting_atoms_list = get_rgroup_connections(atom_dict, connection_table, **input_dict)    
+                
+                # Continue with separation if r-group connecting atoms were found, else skip
+                if len(rgroup_connecting_atoms_list):
+                    separate_rgroups_and_cores(atom_dict, connection_table, rgroup_connecting_atoms_list, **input_dict)
+                
+        except Exception:
+            print("#####################################################################################")
+            print("\t\tERROR searching for core structures and separating them.")
+            print("#####################################################################################")
+            traceback.print_exception(*sys.exc_info())
+            sys.exit(-1)
 
     # Wait for PyMOL to finish loading
     print("# Waiting for PyMOL to finish loading. This may take a few moments.")
     pymol_thread.join()
-
 
     # Make selection
     try:
