@@ -1967,9 +1967,6 @@ def read_pdb_file(file: str,
                 if line_list[0] == 'ATOM':
                     
                     molecule_name = line_list[3].lower()
-                    
-                    if molecule_name != 'solv' and molecule_name != 'protein':
-                        print (molecule_name)
 
                     if molecule_name in aa_list:
                         molecule_name = 'protein'
