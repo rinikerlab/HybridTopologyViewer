@@ -33,7 +33,11 @@ Author: Rene Gall
 AA_LIST = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN", "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
 
 # List of unnatural aminoacids (can be expanded for additional aa)
-AA_UNNAT_LIST = ['CYSH', 'HIE', 'HISB']
+AA_UNNAT_LIST = ['CYSH', 'HIE', 'HISB', 'CYX', 'NME', 'ACE']
+
+aa_list = [aa.lower() for aa in AA_LIST + AA_UNNAT_LIST]
+
+IONS = ['CL', 'cl', 'cl-', 'NA' 'na', 'na+', 'MG', 'mg', 'mg+']
 
 # Default input_dict
 INPUT_DICT_DEFAULT = {"file": None,
@@ -658,20 +662,23 @@ def assign_to_groups_from_ptp(atom_dict, atom_types, dummy_iac):
      
     # Number of ligands = number of perturbed states
     num_ligs = len(atom_types[0])
-    lig_keys = []
+    print ('num_ligs= ' + str(num_ligs))
+    lig_keys = [k for k in atom_dict.keys() if k[0] == 'l']
+    
     # Clear all current ligand selections
-    for i in range(1, num_ligs+1):
-        atom_dict[f'l{i}'] = []
-        lig_keys.append(f'l{i}')
+    for k in lig_keys:
+        atom_dict[k] = []
     atom_dict['core'] = []
     
     for i, atom in enumerate(atom_types):
         if np.alltrue(atom != dummy_iac):
             atom_dict['core'].append(i+1)
+            for k in lig_keys:
+                atom_dict[k].append(i+1)
         else:
-            for j, lig_key in zip(atom, lig_keys):
+            for j, k in zip(atom, lig_keys):
                 if j != dummy_iac:
-                    atom_dict[lig_key].append(i+1)
+                    atom_dict[k].append(i+1)
     return atom_dict
 
 def max_value_nested_list(check_list: list) -> int:
@@ -1950,17 +1957,20 @@ def read_pdb_file(file: str,
 
         with open(file) as inp:
             for line in inp:
-
                 # Format line
                 line_list = line.rsplit()
-
+                if len(line_list) == 0:
+                    continue
                 # Only consider lines with 'ATOM', 'CONECT' or 'TER'
 
                 # ATOM found
                 if line_list[0] == 'ATOM':
                     
                     molecule_name = line_list[3].lower()
-                    
+
+                    if molecule_name in aa_list:
+                        molecule_name = 'protein'
+
                     # Check if key already in dict and no new block was encountered
                     if molecule_name in atom_dict.keys() and not ter_encountered:
                         atom_dict[molecule_name].append(int(line_list[1]))
@@ -1972,11 +1982,17 @@ def read_pdb_file(file: str,
 
                         # Check if next block should be combined and get moleculename
                         combined_label = ter_block_label(list(atom_dict.keys()), molecule_name, combine_aa_to_protein, peptide_atom_number, int(line_list[1]))
-                        
+
                         # No name given => Use name in pdb file
                         if combined_label == '':
                             atom_dict[molecule_name] = [int(line_list[1])]
                         
+                        elif combined_label == 'ions':
+                            if 'ions' not in atom_dict.keys():
+                                atom_dict['ions'] = [int(line_list[1])]
+                            else:
+                                atom_dict['ions'].append(int(line_list[1]))
+
                         # Name given
                         else:
                             atom_dict[combined_label] = [int(line_list[1])]
@@ -2446,6 +2462,11 @@ def ter_block_label(molecule_keys: list, molecule_name: str,
     '''
 
     combined_label = ''
+    
+    # Check if ion
+    if molecule_name in IONS:
+        return 'ions'
+
     # Check if aminoacid encountered
     if molecule_name.upper() in AA_LIST or molecule_name.upper() in AA_UNNAT_LIST:
 
@@ -2541,7 +2562,7 @@ def main():
     # Read in input file and get atom numbering and connection table
     try:
         atom_dict, connection_table = read_pdb_file(**input_dict)
-        
+
     except Exception:
         print("#####################################################################################")
         print("\t\tERROR when reading in input file.")
@@ -2552,7 +2573,7 @@ def main():
     if input_dict['ptp_file'] is not None:
         atom_types, dummy_iac = read_ptp(input_dict['ptp_file'])
         atom_dict = assign_to_groups_from_ptp(atom_dict, atom_types, dummy_iac)
-
+        #print (atom_dict)
     else:
         try:# Find r-group connecting atoms and separate  into r-group and cores
             rgroup_connecting_atoms_list = []
@@ -2600,14 +2621,19 @@ def main():
         traceback.print_exception(*sys.exc_info())
         sys.exit(-1)
 
+    # commented out next few lines because led to bug
 
     # Use new thread to receive additional inputs
-    additional_commands = threading.Thread(target=pymol_additional_function, args=[atom_dict, rgroup_connecting_atoms_list, input_dict], )
+    #additional_commands = threading.Thread(target=pymol_additional_function, args=[atom_dict, rgroup_connecting_atoms_list, input_dict], )
             
-    additional_commands.start()
+    #additional_commands.start()
 
+    # Candide - adding stuff to hide the side chains by default
 
-
+    for i in range(1, num_ligands+1):
+        cmd.hide('sticks', f'l{i}')
+    cmd.bg_color('white')
+    cmd.show(representation='sticks', selection='core')
 
 
 if __name__ == "__main__":
