@@ -2565,8 +2565,6 @@ def main():
     # Read in input file and get atom numbering and connection table
     try:
         atom_dict, connection_table = read_pdb_file(**input_dict)
-        
-        print(f'{atom_dict.keys()}')
 
     except Exception:
         print("#####################################################################################")
